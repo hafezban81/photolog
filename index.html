@@ -102,6 +102,8 @@ main{max-width:980px;margin:0 auto;padding:12px 12px 90px}
       <option value="1024">Normal – 1024 px (~100 KB)</option>
       <option value="1400">Good – 1400 px (~180 KB)</option>
     </select>
+    <label>Name for the extra photo slots (e.g. Additional photos, Overview, Site photos)</label>
+    <input type="text" id="optX" maxlength="30">
     <label style="display:flex;gap:8px;align-items:center;color:var(--ink);font-size:14px;margin-top:14px"><input type="checkbox" id="optStamp"> Show date &amp; time (photos, PDF report, Word)</label>
     <div class="acts" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:14px">
       <button class="btn" id="bkp">⬇ Backup all (file)</button>
@@ -128,7 +130,7 @@ const uid=()=>(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+Mat
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const fmt=t=>new Date(t).toLocaleString("en-SG",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"});
 const fmtD=t=>new Date(t).toLocaleDateString("en-SG",{day:"2-digit",month:"short"});
-const cfg={size:+(localStorage.pl_size||1024),stamp:localStorage.pl_stamp!=="0"};
+const cfg={size:+(localStorage.pl_size||1024),stamp:localStorage.pl_stamp!=="0",xlabel:localStorage.pl_xlabel||"Additional photos"};
 let reportT=Date.now();
 const toLocalInput=t=>new Date(t-new Date(t).getTimezoneOffset()*60000).toISOString().slice(0,16);
 
@@ -207,7 +209,7 @@ function status(i){
 
 const MAXX=3;
 function cell(i,kind){
-  const ph=i[kind],lab=kind==="before"?"Before":kind==="after"?"After":"Additional photos";
+  const ph=i[kind],lab=kind==="before"?"Before":kind==="after"?"After":cfg.xlabel;
   const multi=kind==="extra",full=multi&&ph.length>=MAXX;
   let h='<div class="'+(multi?"thumbs":"one")+'">'+ph.map((p,n)=>`<img src="${p.d}" data-i="${i.id}" data-k="${kind}" data-n="${n}" alt="">`).join("")+"</div>";
   const info=[];
@@ -289,7 +291,7 @@ async function addPhotos(inp){
 function openViewer(id,k,n){
   const i=items.find(x=>x.id===id),p=i[k][n];viewing={id,k,n};
   $("#vimg").src=p.d;
-  $("#vcap").innerHTML=`<b>${k==="before"?"BEFORE":k==="after"?"AFTER":"ADDITIONAL"}</b> – ${esc(i.name||"(no name)")}${cfg.stamp?"<br>"+fmt(p.t):""}`;
+  $("#vcap").innerHTML=`<b>${k==="before"?"BEFORE":k==="after"?"AFTER":esc(cfg.xlabel.toUpperCase())}</b> – ${esc(i.name||"(no name)")}${cfg.stamp?"<br>"+fmt(p.t):""}`;
   $("#vedit").style.display=cfg.stamp?"":"none";
   $("#viewer").classList.add("on");
 }
@@ -316,7 +318,7 @@ function report(){
     const col=(ph)=>ph.length?ph.map(p=>`<img src="${p.d}">${cfg.stamp?`<div class="dt">${fmt(p.t)}</div>`:""}`).join(""):'<div class="dt">— no photo —</div>';
     h+=`<div class="rp-item"><h4>#${n+1} ${esc(i.name||"(no name)")}</h4>${i.notes?`<div class="dt" style="margin-bottom:6px">${esc(i.notes)}</div>`:""}
       <div class="rp-cols"><div><b>BEFORE</b>${col(i.before)}</div><div><b>AFTER</b>${col(i.after)}</div></div>
-      ${i.extra.length?`<div style="margin-top:8px"><b style="font-size:12px;color:#555">ADDITIONAL PHOTOS</b><div class="rp-ex">${i.extra.map(p=>`<img src="${p.d}">`).join("")}</div></div>`:""}</div>`;
+      ${i.extra.length?`<div style="margin-top:8px"><b style="font-size:12px;color:#555">${esc(cfg.xlabel.toUpperCase())}</b><div class="rp-ex">${i.extra.map(p=>`<img src="${p.d}">`).join("")}</div></div>`:""}</div>`;
   });
   $("#main").innerHTML=h;$("#rb").onclick=renderProject;$("#rw").onclick=exportDocx;window.scrollTo(0,0);
   const rd=$("#rdate");if(rd)rd.oninput=e=>{const t=new Date(e.target.value).getTime();if(!isNaN(t)){reportT=t;$("#rhead").textContent=fmt(t)}};
@@ -374,7 +376,7 @@ async function exportDocx(){
       cell(4819,await one(i.before[0]))+cell(4819,await one(i.after[0]))
     ]);
     if(i.extra.length){
-      body+=para("ADDITIONAL PHOTOS",{b:1,sz:20,before:80,keep:1});
+      body+=para(cfg.xlabel.toUpperCase(),{b:1,sz:20,before:80,keep:1});
       let cs="";
       for(let k=0;k<3;k++)cs+=cell(3212,i.extra[k]?await pic(i.extra[k],1872000,1440000):para("",{after:0}));
       body+=tbl([3212,3213,3213],[cs]);
@@ -408,12 +410,12 @@ $("#fab").onclick=async()=>{
     const t=document.querySelector(`textarea[data-i="${i.id}"]`);if(t){t.scrollIntoView({block:"center"});t.focus()}
   }};
 $("#menuBtn").onclick=async()=>{
-  $("#optSize").value=String(cfg.size);$("#optStamp").checked=cfg.stamp;
+  $("#optSize").value=String(cfg.size);$("#optStamp").checked=cfg.stamp;$("#optX").value=cfg.xlabel;
   $("#menu").classList.add("on");
   try{const e=await navigator.storage.estimate();$("#usage").textContent="Storage used on this device: "+(e.usage/1048576).toFixed(1)+" MB"}catch{}
 };
 $("#menuClose").onclick=()=>{
-  cfg.size=+$("#optSize").value;cfg.stamp=$("#optStamp").checked;
+  cfg.size=+$("#optSize").value;cfg.stamp=$("#optStamp").checked;cfg.xlabel=$("#optX").value.trim()||"Additional photos";localStorage.pl_xlabel=cfg.xlabel;
   localStorage.pl_size=cfg.size;localStorage.pl_stamp=cfg.stamp?"1":"0";
   $("#menu").classList.remove("on");
   if(view==="proj")renderProject();else if(view==="report")report();};
