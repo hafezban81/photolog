@@ -58,7 +58,7 @@ main{max-width:980px;margin:0 auto;padding:12px 12px 90px}
 .sheet{background:var(--card);border-radius:14px;padding:16px;width:min(420px,100%)}
 .sheet h3{margin:0 0 10px}
 .sheet label{display:block;font-size:13px;color:var(--mute);margin:10px 0 4px}
-.sheet input[type=text],.sheet select{width:100%;padding:9px;border:1px solid var(--line);border-radius:8px;font:inherit}
+.sheet input[type=text],.sheet input[type=datetime-local],.sheet select{width:100%;padding:9px;border:1px solid var(--line);border-radius:8px;font:inherit}
 .sheet .acts{margin-top:14px;justify-content:flex-end}
 .foot{color:var(--mute);font-size:12px;text-align:center;margin-top:18px}
 #report{display:none}
@@ -88,7 +88,7 @@ main{max-width:980px;margin:0 auto;padding:12px 12px 90px}
 <div class="modal" id="viewer">
   <img id="vimg" alt="">
   <div class="cap" id="vcap"></div>
-  <div class="acts"><button class="btn danger" id="vdel">Delete photo</button><button class="btn" id="vclose">Close</button></div>
+  <div class="acts"><button class="btn" id="vedit">Edit date/time</button><button class="btn danger" id="vdel">Delete photo</button><button class="btn" id="vclose">Close</button></div>
 </div>
 
 <div class="modal" id="menu">
@@ -100,7 +100,7 @@ main{max-width:980px;margin:0 auto;padding:12px 12px 90px}
       <option value="1024">Normal – 1024 px (~100 KB)</option>
       <option value="1400">Good – 1400 px (~180 KB)</option>
     </select>
-    <label><input type="checkbox" id="optStamp"> Print date/time label on each photo</label>
+    <label><input type="checkbox" id="optStamp"> Burn date/time label into each new photo (cannot be edited later)</label>
     <div class="acts" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:14px">
       <button class="btn" id="bkp">⬇ Backup all (file)</button>
       <label class="btn" style="margin:0;color:var(--ink)">⬆ Restore<input type="file" id="rst" accept=".json" style="display:none"></label>
@@ -126,7 +126,7 @@ const uid=()=>(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+Mat
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const fmt=t=>new Date(t).toLocaleString("en-SG",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"});
 const fmtD=t=>new Date(t).toLocaleDateString("en-SG",{day:"2-digit",month:"short"});
-const cfg={size:+(localStorage.pl_size||1024),stamp:localStorage.pl_stamp!=="0"};
+const cfg={size:+(localStorage.pl_size||1024),stamp:localStorage.pl_stamp==="1"};
 
 /* ---------- IndexedDB ---------- */
 let DB;
@@ -167,8 +167,8 @@ function compress(file,label){return new Promise((res,rej)=>{
 let view="home",proj=null,items=[],filter="all",viewing=null;
 
 /* ---------- prompt dialog ---------- */
-function ask(title,val=""){return new Promise(res=>{
-  $("#ptitle").textContent=title;const i=$("#pinput");i.value=val;
+function ask(title,val="",type="text"){return new Promise(res=>{
+  $("#ptitle").textContent=title;const i=$("#pinput");i.type=type;i.value=val;
   $("#prompt").classList.add("on");setTimeout(()=>i.focus(),50);
   const done=v=>{$("#prompt").classList.remove("on");$("#pok").onclick=$("#pcancel").onclick=i.onkeydown=null;res(v)};
   $("#pok").onclick=()=>done(i.value.trim()||null);
@@ -292,6 +292,13 @@ function openViewer(id,k,n){
   $("#viewer").classList.add("on");
 }
 $("#vclose").onclick=()=>$("#viewer").classList.remove("on");
+const toLocalInput=t=>new Date(t-new Date(t).getTimezoneOffset()*60000).toISOString().slice(0,16);
+$("#vedit").onclick=async()=>{
+  const i=items.find(x=>x.id===viewing.id),p=i[viewing.k][viewing.n];
+  const v=await ask("Photo date & time",toLocalInput(p.t),"datetime-local");
+  if(!v)return;
+  const t=new Date(v).getTime();if(isNaN(t))return;
+  p.t=t;await put("items",i);openViewer(viewing.id,viewing.k,viewing.n);renderProject();};
 $("#vdel").onclick=async()=>{
   if(!confirm("Delete this photo?"))return;
   const i=items.find(x=>x.id===viewing.id);i[viewing.k].splice(viewing.n,1);
@@ -301,8 +308,9 @@ $("#vdel").onclick=async()=>{
 function report(){
   view="report";
   $("#fab").style.display="none";
-  let h=`<div class="noprint" style="display:flex;gap:8px;margin-bottom:12px"><button class="btn" id="rb">‹ Back</button><button class="btn primary" onclick="window.print()">🖨 Print / Save as PDF</button></div>
-  <h2 style="margin:0 0 4px">${esc(proj.name)}</h2><div style="color:#666;margin-bottom:14px">Before / After photo report · generated ${fmt(Date.now())}</div>`;
+  let h=`<div class="noprint" style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center"><button class="btn" id="rb">‹ Back</button><button class="btn primary" onclick="window.print()">🖨 Print / Save as PDF</button>
+    <label style="font-size:13px;color:var(--mute)">Report date <input type="datetime-local" id="rdate" value="${toLocalInput(Date.now())}" style="font:inherit;padding:5px;border:1px solid var(--line);border-radius:8px"></label></div>
+  <h2 style="margin:0 0 4px">${esc(proj.name)}</h2><div style="color:#666;margin-bottom:14px">Before / After photo report · <span id="rhead">${fmt(Date.now())}</span></div>`;
   items.forEach((i,n)=>{
     const col=(ph)=>ph.length?ph.map(p=>`<img src="${p.d}"><div class="dt">${fmt(p.t)}</div>`).join(""):'<div class="dt">— no photo —</div>';
     h+=`<div class="rp-item"><h4>#${n+1} ${esc(i.name||"(no name)")}</h4>${i.notes?`<div class="dt" style="margin-bottom:6px">${esc(i.notes)}</div>`:""}
@@ -310,6 +318,7 @@ function report(){
       ${i.extra.length?`<div style="margin-top:8px"><b style="font-size:12px;color:#555">OVERVIEW / EXTRA</b><div class="rp-ex">${i.extra.map(p=>`<img src="${p.d}">`).join("")}</div></div>`:""}</div>`;
   });
   $("#main").innerHTML=h;$("#rb").onclick=renderProject;window.scrollTo(0,0);
+  $("#rdate").oninput=e=>{const t=new Date(e.target.value).getTime();if(!isNaN(t))$("#rhead").textContent=fmt(t)};
 }
 
 /* ---------- buttons ---------- */
