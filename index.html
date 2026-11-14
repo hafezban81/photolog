@@ -102,7 +102,11 @@ main{max-width:980px;margin:0 auto;padding:12px 12px 90px}
       <option value="1024">Normal – 1024 px (~100 KB)</option>
       <option value="1400">Good – 1400 px (~180 KB)</option>
     </select>
-    <label>Name for the extra photo slots (e.g. Additional photos, Overview, Site photos)</label>
+    <label>Name of first photo (default: Before)</label>
+    <input type="text" id="optB" maxlength="20">
+    <label>Name of second photo (default: After)</label>
+    <input type="text" id="optA" maxlength="20">
+    <label>Name of extra photos (default: Additional photos)</label>
     <input type="text" id="optX" maxlength="30">
     <label style="display:flex;gap:8px;align-items:center;color:var(--ink);font-size:14px;margin-top:14px"><input type="checkbox" id="optStamp"> Show date &amp; time (photos, PDF report, Word)</label>
     <div class="acts" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:14px">
@@ -130,7 +134,7 @@ const uid=()=>(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+Mat
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const fmt=t=>new Date(t).toLocaleString("en-SG",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"});
 const fmtD=t=>new Date(t).toLocaleDateString("en-SG",{day:"2-digit",month:"short"});
-const cfg={size:+(localStorage.pl_size||1024),stamp:localStorage.pl_stamp!=="0",xlabel:localStorage.pl_xlabel||"Additional photos"};
+const cfg={size:+(localStorage.pl_size||1024),stamp:localStorage.pl_stamp!=="0",xlabel:localStorage.pl_xlabel||"Additional photos",bl:localStorage.pl_bl||"Before",al:localStorage.pl_al||"After"};
 let reportT=Date.now();
 const toLocalInput=t=>new Date(t-new Date(t).getTimezoneOffset()*60000).toISOString().slice(0,16);
 
@@ -187,7 +191,7 @@ async function home(){
     const li=its.filter(i=>i.projectId===p.id),b=li.filter(i=>i.before.length).length,a=li.filter(i=>i.after.length).length;
     const pct=li.length?Math.round(a/li.length*100):0;
     h+=`<div class="card proj" data-id="${p.id}"><div style="flex:1"><div class="n">${esc(p.name)}</div>
-      <div class="m">${li.length} items · ${b} before · ${a} after</div>
+      <div class="m">${li.length} items · ${b} ${esc(cfg.bl.toLowerCase())} · ${a} ${esc(cfg.al.toLowerCase())}</div>
       <div class="bar"><i style="width:${pct}%"></i></div></div><span class="go">›</span></div>`;
   }
   h+='<div class="foot">Photos are saved on this phone. Use ⋯ → Backup regularly.</div>';
@@ -204,12 +208,12 @@ async function loadItems(){items=(await itemsOf(proj.id)).sort((a,b)=>a.order-b.
 
 function status(i){
   if(i.before.length&&i.after.length)return'<span class="st d">Complete</span>';
-  if(i.before.length)return'<span class="st w">Waiting for after</span>';
+  if(i.before.length)return`<span class="st w">Waiting for ${esc(cfg.al.toLowerCase())}</span>`;
   return'<span class="st n">No photos</span>';}
 
 const MAXX=3;
 function cell(i,kind){
-  const ph=i[kind],lab=kind==="before"?"Before":kind==="after"?"After":cfg.xlabel;
+  const ph=i[kind],lab=kind==="before"?cfg.bl:kind==="after"?cfg.al:cfg.xlabel;
   const multi=kind==="extra",full=multi&&ph.length>=MAXX;
   let h='<div class="'+(multi?"thumbs":"one")+'">'+ph.map((p,n)=>`<img src="${p.d}" data-i="${i.id}" data-k="${kind}" data-n="${n}" alt="">`).join("")+"</div>";
   const info=[];
@@ -228,15 +232,15 @@ function renderProject(){
   const nb=items.filter(i=>i.before.length).length,na=items.filter(i=>i.after.length).length;
   const list=items.filter(i=>filter==="all"||(filter==="wait"&&i.before.length&&!i.after.length)||(filter==="done"&&i.before.length&&i.after.length));
   let h=`<div class="noprint" style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;align-items:center">
-    <span style="color:var(--mute);font-size:13px;flex:1">${items.length} items · ${nb} before · ${na} after</span>
+    <span style="color:var(--mute);font-size:13px;flex:1">${items.length} items · ${nb} ${esc(cfg.bl.toLowerCase())} · ${na} ${esc(cfg.al.toLowerCase())}</span>
     <button class="btn sm" id="ren">Rename</button><button class="btn sm" id="rep">📄 Report / PDF</button><button class="btn sm" id="wrd">📝 Word</button><button class="btn sm danger" id="delp">Delete</button></div>
   <div class="chips noprint">
     <button class="chip ${filter==="all"?"on":""}" data-f="all">All (${items.length})</button>
-    <button class="chip ${filter==="wait"?"on":""}" data-f="wait">Need after photo (${items.filter(i=>i.before.length&&!i.after.length).length})</button>
+    <button class="chip ${filter==="wait"?"on":""}" data-f="wait">Need ${esc(cfg.al.toLowerCase())} photo (${items.filter(i=>i.before.length&&!i.after.length).length})</button>
     <button class="chip ${filter==="done"?"on":""}" data-f="done">Complete (${items.filter(i=>i.before.length&&i.after.length).length})</button></div>`;
   if(!items.length)h+='<div class="empty">No items yet.<br>Tap <b>＋ Add item</b> – one row per replacement / job.</div>';
   else{
-    h+='<div class="grid-h"><div>Item</div><div>📷 Before</div><div>✅ After</div></div>';
+    h+=`<div class="grid-h"><div>Item</div><div>📷 ${esc(cfg.bl)}</div><div>✅ ${esc(cfg.al)}</div></div>`;
     if(!list.length)h+='<div class="row"><div style="grid-column:1/4;color:var(--mute);text-align:center;padding:20px">Nothing in this filter.</div></div>';
     for(const i of list){
       h+=`<div class="row"><div><div class="num"><span>#${items.indexOf(i)+1}</span><button class="btn sm danger" data-del="${i.id}" style="padding:1px 7px">✕</button></div>
@@ -276,7 +280,7 @@ async function addPhotos(inp){
   if(k==="extra")files=files.slice(0,MAXX-i.extra.length);
   else{
     files=files.slice(0,1);
-    if(i[k].length&&!confirm("Replace the existing "+k+" photo?")){inp.value="";return}
+    if(i[k].length&&!confirm("Replace the existing "+(k==="before"?cfg.bl:cfg.al).toLowerCase()+" photo?")){inp.value="";return}
   }
   for(const f of files){
     try{
@@ -291,7 +295,7 @@ async function addPhotos(inp){
 function openViewer(id,k,n){
   const i=items.find(x=>x.id===id),p=i[k][n];viewing={id,k,n};
   $("#vimg").src=p.d;
-  $("#vcap").innerHTML=`<b>${k==="before"?"BEFORE":k==="after"?"AFTER":esc(cfg.xlabel.toUpperCase())}</b> – ${esc(i.name||"(no name)")}${cfg.stamp?"<br>"+fmt(p.t):""}`;
+  $("#vcap").innerHTML=`<b>${esc((k==="before"?cfg.bl:k==="after"?cfg.al:cfg.xlabel).toUpperCase())}</b> – ${esc(i.name||"(no name)")}${cfg.stamp?"<br>"+fmt(p.t):""}`;
   $("#vedit").style.display=cfg.stamp?"":"none";
   $("#viewer").classList.add("on");
 }
@@ -313,11 +317,11 @@ function report(){
   view="report";
   $("#fab").style.display="none";
   let h=`<div class="noprint" style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center"><button class="btn" id="rb">‹ Back</button><button class="btn primary" onclick="window.print()">🖨 Print / Save as PDF</button><button class="btn primary" id="rw">📝 Word (.docx)</button>${cfg.stamp?`<label style="font-size:13px;color:var(--mute)">Report date <input type="datetime-local" id="rdate" value="${toLocalInput(reportT)}" style="font:inherit;padding:5px;border:1px solid var(--line);border-radius:8px"></label>`:""}</div>
-  <h2 style="margin:0 0 4px">${esc(proj.name)}</h2><div style="color:#666;margin-bottom:14px">Before / After photo report${cfg.stamp?` · <span id="rhead">${fmt(reportT)}</span>`:""}</div>`;
+  <h2 style="margin:0 0 4px">${esc(proj.name)}</h2><div style="color:#666;margin-bottom:14px">${esc(cfg.bl)} / ${esc(cfg.al)} photo report${cfg.stamp?` · <span id="rhead">${fmt(reportT)}</span>`:""}</div>`;
   items.forEach((i,n)=>{
     const col=(ph)=>ph.length?ph.map(p=>`<img src="${p.d}">${cfg.stamp?`<div class="dt">${fmt(p.t)}</div>`:""}`).join(""):'<div class="dt">— no photo —</div>';
     h+=`<div class="rp-item"><h4>#${n+1} ${esc(i.name||"(no name)")}</h4>${i.notes?`<div class="dt" style="margin-bottom:6px">${esc(i.notes)}</div>`:""}
-      <div class="rp-cols"><div><b>BEFORE</b>${col(i.before)}</div><div><b>AFTER</b>${col(i.after)}</div></div>
+      <div class="rp-cols"><div><b>${esc(cfg.bl.toUpperCase())}</b>${col(i.before)}</div><div><b>${esc(cfg.al.toUpperCase())}</b>${col(i.after)}</div></div>
       ${i.extra.length?`<div style="margin-top:8px"><b style="font-size:12px;color:#555">${esc(cfg.xlabel.toUpperCase())}</b><div class="rp-ex">${i.extra.map(p=>`<img src="${p.d}">`).join("")}</div></div>`:""}</div>`;
   });
   $("#main").innerHTML=h;$("#rb").onclick=renderProject;$("#rw").onclick=exportDocx;window.scrollTo(0,0);
@@ -364,7 +368,7 @@ async function exportDocx(){
   const bd='<w:tblBorders>'+["top","left","bottom","right","insideH","insideV"].map(s=>`<w:${s} w:val="single" w:sz="4" w:space="0" w:color="BFC5D0"/>`).join("")+'</w:tblBorders>';
   const cell=(w,inner,shade)=>`<w:tc><w:tcPr><w:tcW w:w="${w}" w:type="dxa"/>${shade?`<w:shd w:val="clear" w:color="auto" w:fill="${shade}"/>`:""}</w:tcPr>${inner}</w:tc>`;
   const tbl=(cols,rows)=>`<w:tbl><w:tblPr><w:tblW w:w="${cols.reduce((a,b)=>a+b,0)}" w:type="dxa"/>${bd}<w:tblLayout w:type="fixed"/><w:tblCellMar><w:left w:w="80" w:type="dxa"/><w:right w:w="80" w:type="dxa"/></w:tblCellMar></w:tblPr><w:tblGrid>${cols.map(c=>`<w:gridCol w:w="${c}"/>`).join("")}</w:tblGrid>${rows.map(r=>`<w:tr><w:trPr><w:cantSplit/></w:trPr>${r}</w:tr>`).join("")}</w:tbl>`;
-  let body=para(proj.name,{b:1,sz:36,after:40})+para("Before / After photo report"+(cfg.stamp?" · "+fmt(view==="report"?reportT:Date.now()):""),{color:"666666",after:200});
+  let body=para(proj.name,{b:1,sz:36,after:40})+para(cfg.bl+" / "+cfg.al+" photo report"+(cfg.stamp?" · "+fmt(view==="report"?reportT:Date.now()):""),{color:"666666",after:200});
   let n=0;
   for(const i of items){
     n++;
@@ -372,7 +376,7 @@ async function exportDocx(){
     if(i.notes)body+=para(i.notes,{color:"555555",sz:20,keep:1});
     const one=async(p)=>p?await pic(p,2880000,2160000):para("— no photo —",{color:"888888",sz:20});
     body+=tbl([4819,4819],[
-      cell(4819,para("BEFORE",{b:1,sz:20,after:0}),"E9ECF2")+cell(4819,para("AFTER",{b:1,sz:20,after:0}),"E9ECF2"),
+      cell(4819,para(cfg.bl.toUpperCase(),{b:1,sz:20,after:0}),"E9ECF2")+cell(4819,para(cfg.al.toUpperCase(),{b:1,sz:20,after:0}),"E9ECF2"),
       cell(4819,await one(i.before[0]))+cell(4819,await one(i.after[0]))
     ]);
     if(i.extra.length){
@@ -410,15 +414,15 @@ $("#fab").onclick=async()=>{
     const t=document.querySelector(`textarea[data-i="${i.id}"]`);if(t){t.scrollIntoView({block:"center"});t.focus()}
   }};
 $("#menuBtn").onclick=async()=>{
-  $("#optSize").value=String(cfg.size);$("#optStamp").checked=cfg.stamp;$("#optX").value=cfg.xlabel;
+  $("#optSize").value=String(cfg.size);$("#optStamp").checked=cfg.stamp;$("#optX").value=cfg.xlabel;$("#optB").value=cfg.bl;$("#optA").value=cfg.al;
   $("#menu").classList.add("on");
   try{const e=await navigator.storage.estimate();$("#usage").textContent="Storage used on this device: "+(e.usage/1048576).toFixed(1)+" MB"}catch{}
 };
 $("#menuClose").onclick=()=>{
-  cfg.size=+$("#optSize").value;cfg.stamp=$("#optStamp").checked;cfg.xlabel=$("#optX").value.trim()||"Additional photos";localStorage.pl_xlabel=cfg.xlabel;
+  cfg.size=+$("#optSize").value;cfg.stamp=$("#optStamp").checked;cfg.xlabel=$("#optX").value.trim()||"Additional photos";localStorage.pl_xlabel=cfg.xlabel;cfg.bl=$("#optB").value.trim()||"Before";cfg.al=$("#optA").value.trim()||"After";localStorage.pl_bl=cfg.bl;localStorage.pl_al=cfg.al;
   localStorage.pl_size=cfg.size;localStorage.pl_stamp=cfg.stamp?"1":"0";
   $("#menu").classList.remove("on");
-  if(view==="proj")renderProject();else if(view==="report")report();};
+  if(view==="proj")renderProject();else if(view==="report")report();else if(view==="home")home();};
 $("#bkp").onclick=async()=>{
   const data={v:1,projects:await all("projects"),items:await all("items")};
   const a=document.createElement("a");
