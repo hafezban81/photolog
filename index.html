@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Photo Log – Before / After</title>
+<style>
+:root{--bg:#f4f5f7;--card:#fff;--ink:#1d2433;--mute:#6b7385;--line:#dfe3ea;--brand:#1f6feb;--ok:#1a8f4c;--warn:#c77700;--bad:#c62828}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;-webkit-text-size-adjust:100%}
+button{font:inherit;cursor:pointer}
+header.top{position:sticky;top:0;z-index:20;background:var(--card);border-bottom:1px solid var(--line);padding:calc(8px + env(safe-area-inset-top)) 12px 8px;display:flex;align-items:center;gap:8px}
+header.top h1{font-size:17px;margin:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.btn{border:1px solid var(--line);background:var(--card);border-radius:8px;padding:8px 12px;color:var(--ink)}
+.btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+.btn.danger{color:var(--bad)}
+.btn.sm{padding:5px 9px;font-size:13px}
+main{max-width:980px;margin:0 auto;padding:12px 12px 90px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px}
+.proj{display:flex;align-items:center;gap:10px;padding:14px;margin-bottom:10px;cursor:pointer}
+.proj .n{font-weight:600;font-size:16px}
+.proj .m{color:var(--mute);font-size:13px;margin-top:2px}
+.proj .go{margin-left:auto;color:var(--mute);font-size:20px}
+.bar{height:6px;background:#e8ebf0;border-radius:3px;overflow:hidden;margin-top:8px;width:100%}
+.bar>i{display:block;height:100%;background:var(--ok)}
+.empty{text-align:center;color:var(--mute);padding:40px 10px}
+.chips{display:flex;gap:6px;margin:0 0 10px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);background:var(--card);border-radius:20px;padding:5px 12px;font-size:13px}
+.chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.grid-h,.row{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) minmax(0,1fr);gap:0}
+.grid-h{position:sticky;top:calc(49px + env(safe-area-inset-top));z-index:10;background:#e9ecf2;border:1px solid var(--line);border-radius:12px 12px 0 0;font-weight:600;font-size:13px;color:var(--mute)}
+.grid-h>div{padding:8px 10px}
+.row{background:var(--card);border:1px solid var(--line);border-top:0}
+.row:last-child{border-radius:0 0 12px 12px}
+.row>div{padding:8px;border-right:1px solid var(--line);min-width:0}
+.row>div:last-child{border-right:0}
+.num{font-size:12px;color:var(--mute);display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.row textarea{width:100%;border:1px solid transparent;border-radius:6px;padding:4px 6px;font:inherit;resize:none;background:#f7f8fa;color:var(--ink);overflow:hidden}
+.row textarea:focus{outline:2px solid var(--brand);background:#fff}
+.row textarea.nm{font-weight:600}
+.row textarea.nt{font-size:13px;color:var(--mute);margin-top:4px}
+.st{display:inline-block;font-size:11px;border-radius:10px;padding:1px 7px;margin-top:4px}
+.st.w{background:#fff3e0;color:var(--warn)}.st.d{background:#e6f5ec;color:var(--ok)}.st.n{background:#eef0f4;color:var(--mute)}
+.thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:5px}
+.thumbs img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px;border:1px solid var(--line);display:block}
+.add{display:flex;gap:5px;margin-top:6px}
+.add label{flex:1;text-align:center;border:1px dashed #9aa3b5;border-radius:8px;padding:9px 4px;font-size:13px;color:var(--brand);cursor:pointer;background:#f7faff}
+.add label.g{flex:0 0 38px;color:var(--mute)}
+.add input{display:none}
+.dt{font-size:11px;color:var(--mute);margin-top:4px}
+.fab{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom));z-index:15;box-shadow:0 4px 14px rgba(0,0,0,.2);border-radius:28px;padding:12px 22px}
+.modal{position:fixed;inset:0;background:rgba(10,14,22,.88);z-index:50;display:none;flex-direction:column;align-items:center;justify-content:center;padding:12px}
+.modal.on{display:flex}
+.modal img{max-width:100%;max-height:72vh;border-radius:8px}
+.modal .cap{color:#fff;margin:10px 0;text-align:center;font-size:14px}
+.modal .acts{display:flex;gap:10px}
+.sheet{background:var(--card);border-radius:14px;padding:16px;width:min(420px,100%)}
+.sheet h3{margin:0 0 10px}
+.sheet label{display:block;font-size:13px;color:var(--mute);margin:10px 0 4px}
+.sheet input[type=text],.sheet select{width:100%;padding:9px;border:1px solid var(--line);border-radius:8px;font:inherit}
+.sheet .acts{margin-top:14px;justify-content:flex-end}
+.foot{color:var(--mute);font-size:12px;text-align:center;margin-top:18px}
+#report{display:none}
+.rp-item{break-inside:avoid;border:1px solid #ccc;border-radius:8px;padding:10px;margin-bottom:12px;background:#fff}
+.rp-item h4{margin:0 0 6px}
+.rp-cols{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.rp-ex{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:4px}.rp-ex img{width:100%;border-radius:4px}
+.one img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:6px;border:1px solid var(--line);display:block}
+.xtra{margin-top:10px;padding-top:8px;border-top:1px dashed var(--line)}
+.rp-cols b{font-size:12px;color:#555;display:block;margin-bottom:4px}
+.rp-cols img{width:100%;border-radius:4px;margin-bottom:4px;display:block}
+@media print{
+  header.top,.fab,.noprint{display:none!important}
+  body{background:#fff}main{padding:0;max-width:none}
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <button class="btn sm" id="back" style="display:none">‹ Back</button>
+  <h1 id="title">Photo Log</h1>
+  <button class="btn sm" id="menuBtn">⋯</button>
+</header>
+<main id="main"></main>
+<button class="btn primary fab" id="fab">＋ New project</button>
+
+<div class="modal" id="viewer">
+  <img id="vimg" alt="">
+  <div class="cap" id="vcap"></div>
+  <div class="acts"><button class="btn danger" id="vdel">Delete photo</button><button class="btn" id="vclose">Close</button></div>
+</div>
+
+<div class="modal" id="menu">
+  <div class="sheet">
+    <h3>Options</h3>
+    <label>Photo size (smaller = saves more space)</label>
+    <select id="optSize">
+      <option value="800">Small – 800 px (~60 KB)</option>
+      <option value="1024">Normal – 1024 px (~100 KB)</option>
+      <option value="1400">Good – 1400 px (~180 KB)</option>
+    </select>
+    <label><input type="checkbox" id="optStamp"> Print date/time label on each photo</label>
+    <div class="acts" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:14px">
+      <button class="btn" id="bkp">⬇ Backup all (file)</button>
+      <label class="btn" style="margin:0;color:var(--ink)">⬆ Restore<input type="file" id="rst" accept=".json" style="display:none"></label>
+    </div>
+    <div class="dt" id="usage" style="margin-top:10px"></div>
+    <div class="acts" style="display:flex;justify-content:flex-end;margin-top:12px"><button class="btn primary" id="menuClose">Done</button></div>
+  </div>
+</div>
+
+<div class="modal" id="prompt">
+  <div class="sheet">
+    <h3 id="ptitle"></h3>
+    <input type="text" id="pinput" autocomplete="off">
+    <div class="acts" style="display:flex;gap:8px;justify-content:flex-end"><button class="btn" id="pcancel">Cancel</button><button class="btn primary" id="pok">OK</button></div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ---------- tiny helpers ---------- */
+const $=s=>document.querySelector(s);
+const uid=()=>(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2));
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const fmt=t=>new Date(t).toLocaleString("en-SG",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"});
+const fmtD=t=>new Date(t).toLocaleDateString("en-SG",{day:"2-digit",month:"short"});
+const cfg={size:+(localStorage.pl_size||1024),stamp:localStorage.pl_stamp!=="0"};
+
+/* ---------- IndexedDB ---------- */
+let DB;
+function openDB(){return new Promise((res,rej)=>{
+  const r=indexedDB.open("photolog",1);
+  r.onupgradeneeded=()=>{const d=r.result;
+    d.createObjectStore("projects",{keyPath:"id"});
+    d.createObjectStore("items",{keyPath:"id"}).createIndex("p","projectId");};
+  r.onsuccess=()=>{DB=r.result;res()};r.onerror=()=>rej(r.error);});}
+const req=r=>new Promise((res,rej)=>{r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});
+const store=(n,m="readonly")=>DB.transaction(n,m).objectStore(n);
+const put=(n,o)=>req(store(n,"readwrite").put(o));
+const del=(n,id)=>req(store(n,"readwrite").delete(id));
+const all=n=>req(store(n).getAll());
+const itemsOf=pid=>req(store("items").index("p").getAll(pid));
+
+/* ---------- image compression ---------- */
+function compress(file,label){return new Promise((res,rej)=>{
+  const url=URL.createObjectURL(file),img=new Image();
+  img.onload=()=>{
+    let w=img.naturalWidth,h=img.naturalHeight,k=Math.min(1,cfg.size/Math.max(w,h));
+    w=Math.round(w*k);h=Math.round(h*k);
+    const c=document.createElement("canvas");c.width=w;c.height=h;
+    const x=c.getContext("2d");x.drawImage(img,0,0,w,h);
+    if(cfg.stamp){
+      const txt=label+" · "+fmt(Date.now()),fs=Math.max(13,Math.round(w/38));
+      x.font="bold "+fs+"px sans-serif";x.textBaseline="bottom";
+      const tw=x.measureText(txt).width;
+      x.fillStyle="rgba(0,0,0,.55)";x.fillRect(0,h-fs-10,tw+16,fs+10);
+      x.fillStyle="#fff";x.fillText(txt,8,h-5);
+    }
+    URL.revokeObjectURL(url);res(c.toDataURL("image/jpeg",.6));
+  };
+  img.onerror=()=>{URL.revokeObjectURL(url);rej(new Error("Cannot read image"))};
+  img.src=url;});}
+
+/* ---------- state ---------- */
+let view="home",proj=null,items=[],filter="all",viewing=null;
+
+/* ---------- prompt dialog ---------- */
+function ask(title,val=""){return new Promise(res=>{
+  $("#ptitle").textContent=title;const i=$("#pinput");i.value=val;
+  $("#prompt").classList.add("on");setTimeout(()=>i.focus(),50);
+  const done=v=>{$("#prompt").classList.remove("on");$("#pok").onclick=$("#pcancel").onclick=i.onkeydown=null;res(v)};
+  $("#pok").onclick=()=>done(i.value.trim()||null);
+  $("#pcancel").onclick=()=>done(null);
+  i.onkeydown=e=>{if(e.key==="Enter")done(i.value.trim()||null)};});}
+
+/* ---------- HOME ---------- */
+async function home(){
+  view="home";proj=null;
+  $("#back").style.display="none";$("#title").textContent="Photo Log";
+  $("#fab").style.display="";$("#fab").textContent="＋ New project";
+  const ps=(await all("projects")).sort((a,b)=>b.created-a.created);
+  const its=await all("items");
+  let h="";
+  if(!ps.length)h='<div class="empty">No projects yet.<br>Tap <b>＋ New project</b> to start.</div>';
+  for(const p of ps){
+    const li=its.filter(i=>i.projectId===p.id),b=li.filter(i=>i.before.length).length,a=li.filter(i=>i.after.length).length;
+    const pct=li.length?Math.round(a/li.length*100):0;
+    h+=`<div class="card proj" data-id="${p.id}"><div style="flex:1"><div class="n">${esc(p.name)}</div>
+      <div class="m">${li.length} items · ${b} before · ${a} after · created ${fmtD(p.created)}</div>
+      <div class="bar"><i style="width:${pct}%"></i></div></div><span class="go">›</span></div>`;
+  }
+  h+='<div class="foot">Photos are saved on this phone. Use ⋯ → Backup regularly.</div>';
+  $("#main").innerHTML=h;
+  document.querySelectorAll(".proj").forEach(e=>e.onclick=()=>openProject(e.dataset.id));
+}
+
+/* ---------- PROJECT ---------- */
+async function openProject(id){
+  proj=(await all("projects")).find(p=>p.id===id);if(!proj)return home();
+  view="proj";filter="all";await loadItems();renderProject();
+}
+async function loadItems(){items=(await itemsOf(proj.id)).sort((a,b)=>a.order-b.order);items.forEach(i=>{i.extra=i.extra||[]})}
+
+function status(i){
+  if(i.before.length&&i.after.length)return'<span class="st d">Complete</span>';
+  if(i.before.length)return'<span class="st w">Waiting for after</span>';
+  return'<span class="st n">No photos</span>';}
+
+const MAXX=3;
+function cell(i,kind){
+  const ph=i[kind],lab=kind==="before"?"Before":kind==="after"?"After":"Overview / extra";
+  const multi=kind==="extra",full=multi&&ph.length>=MAXX;
+  let h='<div class="'+(multi?"thumbs":"one")+'">'+ph.map((p,n)=>`<img src="${p.d}" data-i="${i.id}" data-k="${kind}" data-n="${n}" alt="">`).join("")+"</div>";
+  if(ph.length)h+=`<div class="dt">${fmt(ph[ph.length-1].t)}${multi?" · "+ph.length+"/"+MAXX:""}</div>`;
+  if(full)return h;
+  const txt=(!multi&&ph.length)?"Retake":"📷 "+lab;
+  h+=`<div class="add"><label>${txt}<input type="file" accept="image/*" capture="environment" ${multi?"multiple":""} data-i="${i.id}" data-k="${kind}"></label>
+      <label class="g" title="Choose from gallery">🖼<input type="file" accept="image/*" ${multi?"multiple":""} data-i="${i.id}" data-k="${kind}"></label></div>`;
+  return h;}
+
+function renderProject(){
+  $("#back").style.display="";$("#title").textContent=proj.name;
+  $("#fab").style.display="";$("#fab").textContent="＋ Add item";
+  const nb=items.filter(i=>i.before.length).length,na=items.filter(i=>i.after.length).length;
+  const list=items.filter(i=>filter==="all"||(filter==="wait"&&i.before.length&&!i.after.length)||(filter==="done"&&i.before.length&&i.after.length));
+  let h=`<div class="noprint" style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;align-items:center">
+    <span style="color:var(--mute);font-size:13px;flex:1">${items.length} items · ${nb} before · ${na} after</span>
+    <button class="btn sm" id="ren">Rename</button><button class="btn sm" id="rep">📄 Report / PDF</button><button class="btn sm danger" id="delp">Delete</button></div>
+  <div class="chips noprint">
+    <button class="chip ${filter==="all"?"on":""}" data-f="all">All (${items.length})</button>
+    <button class="chip ${filter==="wait"?"on":""}" data-f="wait">Need after photo (${items.filter(i=>i.before.length&&!i.after.length).length})</button>
+    <button class="chip ${filter==="done"?"on":""}" data-f="done">Complete (${items.filter(i=>i.before.length&&i.after.length).length})</button></div>`;
+  if(!items.length)h+='<div class="empty">No items yet.<br>Tap <b>＋ Add item</b> – one row per replacement / job.</div>';
+  else{
+    h+='<div class="grid-h"><div>Item</div><div>📷 Before</div><div>✅ After</div></div>';
+    if(!list.length)h+='<div class="row"><div style="grid-column:1/4;color:var(--mute);text-align:center;padding:20px">Nothing in this filter.</div></div>';
+    for(const i of list){
+      h+=`<div class="row"><div><div class="num"><span>#${items.indexOf(i)+1}</span><button class="btn sm danger" data-del="${i.id}" style="padding:1px 7px">✕</button></div>
+        <textarea class="nm" rows="2" placeholder="Item / location" data-f="name" data-i="${i.id}">${esc(i.name)}</textarea>
+        <textarea class="nt" rows="1" placeholder="Notes" data-f="notes" data-i="${i.id}">${esc(i.notes)}</textarea>${status(i)}</div>
+        <div>${cell(i,"before")}</div><div>${cell(i,"after")}<div class="xtra">${cell(i,"extra")}</div></div></div>`;
+    }
+  }
+  $("#main").innerHTML=h;
+  bindProject();
+}
+
+function bindProject(){
+  const m=$("#main");
+  m.querySelectorAll("[data-f].chip").forEach(b=>b.onclick=()=>{filter=b.dataset.f;renderProject()});
+  m.querySelectorAll("textarea").forEach(t=>{
+    const grow=()=>{t.style.height="auto";t.style.height=t.scrollHeight+"px"};grow();t.oninput=grow;
+    t.onchange=async()=>{const i=items.find(x=>x.id===t.dataset.i);i[t.dataset.f]=t.value.trim();await put("items",i)};});
+  m.querySelectorAll("input[type=file]").forEach(inp=>inp.onchange=()=>addPhotos(inp));
+  m.querySelectorAll(".thumbs img,.one img").forEach(im=>im.onclick=()=>openViewer(im.dataset.i,im.dataset.k,+im.dataset.n));
+  m.querySelectorAll("[data-del]").forEach(b=>b.onclick=async()=>{
+    if(!confirm("Delete this item and its photos?"))return;
+    await del("items",b.dataset.del);await loadItems();renderProject();});
+  const r=$("#ren");if(r)r.onclick=async()=>{const n=await ask("Project name",proj.name);if(n){proj.name=n;await put("projects",proj);renderProject()}};
+  const dp=$("#delp");if(dp)dp.onclick=async()=>{
+    if(!confirm('Delete project "'+proj.name+'" and ALL its photos?'))return;
+    for(const i of items)await del("items",i.id);await del("projects",proj.id);home();};
+  const rp=$("#rep");if(rp)rp.onclick=report;
+}
+
+async function addPhotos(inp){
+  const i=items.find(x=>x.id===inp.dataset.i),k=inp.dataset.k;let files=[...inp.files];
+  if(!files.length)return;
+  const lab=k==="before"?"BEFORE":k==="after"?"AFTER":"EXTRA";
+  const y=window.scrollY;
+  if(k==="extra")files=files.slice(0,MAXX-i.extra.length);
+  else{
+    files=files.slice(0,1);
+    if(i[k].length&&!confirm("Replace the existing "+k+" photo?")){inp.value="";return}
+  }
+  for(const f of files){
+    try{
+      const p={d:await compress(f,lab),t:Date.now()};
+      if(k==="extra")i.extra.push(p);else i[k]=[p];
+    }catch(e){alert("Could not read that photo.")}
+  }
+  await put("items",i);renderProject();window.scrollTo(0,y);
+}
+
+/* ---------- viewer ---------- */
+function openViewer(id,k,n){
+  const i=items.find(x=>x.id===id),p=i[k][n];viewing={id,k,n};
+  $("#vimg").src=p.d;
+  $("#vcap").innerHTML=`<b>${k==="before"?"BEFORE":k==="after"?"AFTER":"EXTRA"}</b> – ${esc(i.name||"(no name)")}<br>${fmt(p.t)}`;
+  $("#viewer").classList.add("on");
+}
+$("#vclose").onclick=()=>$("#viewer").classList.remove("on");
+$("#vdel").onclick=async()=>{
+  if(!confirm("Delete this photo?"))return;
+  const i=items.find(x=>x.id===viewing.id);i[viewing.k].splice(viewing.n,1);
+  await put("items",i);$("#viewer").classList.remove("on");renderProject();};
+
+/* ---------- report (print / save as PDF) ---------- */
+function report(){
+  view="report";
+  $("#fab").style.display="none";
+  let h=`<div class="noprint" style="display:flex;gap:8px;margin-bottom:12px"><button class="btn" id="rb">‹ Back</button><button class="btn primary" onclick="window.print()">🖨 Print / Save as PDF</button></div>
+  <h2 style="margin:0 0 4px">${esc(proj.name)}</h2><div style="color:#666;margin-bottom:14px">Before / After photo report · generated ${fmt(Date.now())}</div>`;
+  items.forEach((i,n)=>{
+    const col=(ph)=>ph.length?ph.map(p=>`<img src="${p.d}"><div class="dt">${fmt(p.t)}</div>`).join(""):'<div class="dt">— no photo —</div>';
+    h+=`<div class="rp-item"><h4>#${n+1} ${esc(i.name||"(no name)")}</h4>${i.notes?`<div class="dt" style="margin-bottom:6px">${esc(i.notes)}</div>`:""}
+      <div class="rp-cols"><div><b>BEFORE</b>${col(i.before)}</div><div><b>AFTER</b>${col(i.after)}</div></div>
+      ${i.extra.length?`<div style="margin-top:8px"><b style="font-size:12px;color:#555">OVERVIEW / EXTRA</b><div class="rp-ex">${i.extra.map(p=>`<img src="${p.d}">`).join("")}</div></div>`:""}</div>`;
+  });
+  $("#main").innerHTML=h;$("#rb").onclick=renderProject;window.scrollTo(0,0);
+}
+
+/* ---------- buttons ---------- */
+$("#back").onclick=()=>{if(view==="report")renderProject();else home()};
+$("#fab").onclick=async()=>{
+  if(view==="home"){
+    const n=await ask("New project name");if(!n)return;
+    const p={id:uid(),name:n,created:Date.now()};await put("projects",p);openProject(p.id);
+  }else if(view==="proj"){
+    const i={id:uid(),projectId:proj.id,order:Date.now(),name:"",notes:"",before:[],after:[],extra:[]};
+    await put("items",i);filter="all";await loadItems();renderProject();
+    const t=document.querySelector(`textarea[data-i="${i.id}"]`);if(t){t.scrollIntoView({block:"center"});t.focus()}
+  }};
+$("#menuBtn").onclick=async()=>{
+  $("#optSize").value=String(cfg.size);$("#optStamp").checked=cfg.stamp;
+  $("#menu").classList.add("on");
+  try{const e=await navigator.storage.estimate();$("#usage").textContent="Storage used on this device: "+(e.usage/1048576).toFixed(1)+" MB"}catch{}
+};
+$("#menuClose").onclick=()=>{
+  cfg.size=+$("#optSize").value;cfg.stamp=$("#optStamp").checked;
+  localStorage.pl_size=cfg.size;localStorage.pl_stamp=cfg.stamp?"1":"0";
+  $("#menu").classList.remove("on");};
+$("#bkp").onclick=async()=>{
+  const data={v:1,projects:await all("projects"),items:await all("items")};
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(data)],{type:"application/json"}));
+  a.download="photolog-backup-"+new Date().toISOString().slice(0,10)+".json";a.click();};
+$("#rst").onchange=async e=>{
+  const f=e.target.files[0];if(!f)return;
+  try{const d=JSON.parse(await f.text());
+    for(const p of d.projects)await put("projects",p);
+    for(const i of d.items)await put("items",i);
+    alert("Restored "+d.projects.length+" project(s).");$("#menu").classList.remove("on");home();
+  }catch{alert("That file is not a valid backup.")}
+  e.target.value="";};
+$("#viewer").onclick=e=>{if(e.target.id==="viewer")$("#viewer").classList.remove("on")};
+
+/* ---------- start ---------- */
+openDB().then(()=>{home();navigator.storage&&navigator.storage.persist&&navigator.storage.persist()});
+</script>
+</body>
+</html>
