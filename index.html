@@ -207,7 +207,7 @@ function status(i){
 
 const MAXX=3;
 function cell(i,kind){
-  const ph=i[kind],lab=kind==="before"?"Before":kind==="after"?"After":"Overview / extra";
+  const ph=i[kind],lab=kind==="before"?"Before":kind==="after"?"After":"Additional photos";
   const multi=kind==="extra",full=multi&&ph.length>=MAXX;
   let h='<div class="'+(multi?"thumbs":"one")+'">'+ph.map((p,n)=>`<img src="${p.d}" data-i="${i.id}" data-k="${kind}" data-n="${n}" alt="">`).join("")+"</div>";
   const info=[];
@@ -269,7 +269,7 @@ function bindProject(){
 async function addPhotos(inp){
   const i=items.find(x=>x.id===inp.dataset.i),k=inp.dataset.k;let files=[...inp.files];
   if(!files.length)return;
-  const lab=k==="before"?"BEFORE":k==="after"?"AFTER":"EXTRA";
+  const lab=k==="before"?"BEFORE":k==="after"?"AFTER":"ADDITIONAL";
   const y=window.scrollY;
   if(k==="extra")files=files.slice(0,MAXX-i.extra.length);
   else{
@@ -289,7 +289,7 @@ async function addPhotos(inp){
 function openViewer(id,k,n){
   const i=items.find(x=>x.id===id),p=i[k][n];viewing={id,k,n};
   $("#vimg").src=p.d;
-  $("#vcap").innerHTML=`<b>${k==="before"?"BEFORE":k==="after"?"AFTER":"EXTRA"}</b> – ${esc(i.name||"(no name)")}${cfg.stamp?"<br>"+fmt(p.t):""}`;
+  $("#vcap").innerHTML=`<b>${k==="before"?"BEFORE":k==="after"?"AFTER":"ADDITIONAL"}</b> – ${esc(i.name||"(no name)")}${cfg.stamp?"<br>"+fmt(p.t):""}`;
   $("#vedit").style.display=cfg.stamp?"":"none";
   $("#viewer").classList.add("on");
 }
@@ -316,7 +316,7 @@ function report(){
     const col=(ph)=>ph.length?ph.map(p=>`<img src="${p.d}">${cfg.stamp?`<div class="dt">${fmt(p.t)}</div>`:""}`).join(""):'<div class="dt">— no photo —</div>';
     h+=`<div class="rp-item"><h4>#${n+1} ${esc(i.name||"(no name)")}</h4>${i.notes?`<div class="dt" style="margin-bottom:6px">${esc(i.notes)}</div>`:""}
       <div class="rp-cols"><div><b>BEFORE</b>${col(i.before)}</div><div><b>AFTER</b>${col(i.after)}</div></div>
-      ${i.extra.length?`<div style="margin-top:8px"><b style="font-size:12px;color:#555">OVERVIEW / EXTRA</b><div class="rp-ex">${i.extra.map(p=>`<img src="${p.d}">`).join("")}</div></div>`:""}</div>`;
+      ${i.extra.length?`<div style="margin-top:8px"><b style="font-size:12px;color:#555">ADDITIONAL PHOTOS</b><div class="rp-ex">${i.extra.map(p=>`<img src="${p.d}">`).join("")}</div></div>`:""}</div>`;
   });
   $("#main").innerHTML=h;$("#rb").onclick=renderProject;$("#rw").onclick=exportDocx;window.scrollTo(0,0);
   const rd=$("#rdate");if(rd)rd.oninput=e=>{const t=new Date(e.target.value).getTime();if(!isNaN(t)){reportT=t;$("#rhead").textContent=fmt(t)}};
@@ -374,7 +374,7 @@ async function exportDocx(){
       cell(4819,await one(i.before[0]))+cell(4819,await one(i.after[0]))
     ]);
     if(i.extra.length){
-      body+=para("OVERVIEW / EXTRA",{b:1,sz:20,before:80,keep:1});
+      body+=para("ADDITIONAL PHOTOS",{b:1,sz:20,before:80,keep:1});
       let cs="";
       for(let k=0;k<3;k++)cs+=cell(3212,i.extra[k]?await pic(i.extra[k],1872000,1440000):para("",{after:0}));
       body+=tbl([3212,3213,3213],[cs]);
